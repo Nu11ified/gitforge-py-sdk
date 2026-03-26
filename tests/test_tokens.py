@@ -49,19 +49,6 @@ def tokens(http_client: HttpClient) -> TokensResource:
 
 
 class TestCreate:
-    async def test_creates_token_with_no_options(
-        self, tokens: TokensResource, mock_router: respx.MockRouter
-    ) -> None:
-        route = mock_router.post(TOKENS_URL).mock(
-            return_value=httpx.Response(200, json=TOKEN_JSON)
-        )
-        result = await tokens.create()
-        assert route.called
-        request = route.calls[0].request
-        assert request.method == "POST"
-        body = json.loads(request.content)
-        assert body == {}
-
     async def test_creates_token_with_ttl_seconds(
         self, tokens: TokensResource, mock_router: respx.MockRouter
     ) -> None:
@@ -78,9 +65,19 @@ class TestCreate:
         route = mock_router.post(TOKENS_URL).mock(
             return_value=httpx.Response(200, json=TOKEN_JSON)
         )
-        await tokens.create(scopes=["read", "write"])
+        await tokens.create(ttl_seconds=3600, scopes=["read", "write"])
         body = json.loads(route.calls[0].request.content)
-        assert body == {"scopes": ["read", "write"]}
+        assert body == {"ttlSeconds": 3600, "scopes": ["read", "write"]}
+
+    async def test_creates_token_with_type(
+        self, tokens: TokensResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(TOKENS_URL).mock(
+            return_value=httpx.Response(200, json=TOKEN_JSON)
+        )
+        await tokens.create(ttl_seconds=3600, type="ci")
+        body = json.loads(route.calls[0].request.content)
+        assert body == {"ttlSeconds": 3600, "type": "ci"}
 
     async def test_creates_token_with_all_options(
         self, tokens: TokensResource, mock_router: respx.MockRouter
@@ -88,9 +85,9 @@ class TestCreate:
         route = mock_router.post(TOKENS_URL).mock(
             return_value=httpx.Response(200, json=TOKEN_JSON)
         )
-        await tokens.create(ttl_seconds=1800, scopes=["read"])
+        await tokens.create(ttl_seconds=1800, scopes=["read"], type="deploy")
         body = json.loads(route.calls[0].request.content)
-        assert body == {"ttlSeconds": 1800, "scopes": ["read"]}
+        assert body == {"ttlSeconds": 1800, "scopes": ["read"], "type": "deploy"}
 
     async def test_returns_repo_token_with_correct_fields(
         self, tokens: TokensResource, mock_router: respx.MockRouter
@@ -113,7 +110,7 @@ class TestCreate:
         route = mock_router.post(TOKENS_URL).mock(
             return_value=httpx.Response(200, json=TOKEN_JSON)
         )
-        await tokens.create()
+        await tokens.create(ttl_seconds=3600)
         request = route.calls[0].request
         assert str(request.url) == TOKENS_URL
         assert request.method == "POST"

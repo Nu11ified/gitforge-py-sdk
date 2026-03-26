@@ -100,27 +100,26 @@ class TestCreate:
         await webhooks.create(url="https://example.com/webhook")
         assert route.called
         body = json.loads(route.calls[0].request.content)
-        assert body["url"] == "https://example.com/webhook"
-        assert body["active"] is True
-        assert "events" not in body
+        assert body == {"url": "https://example.com/webhook"}
 
-    async def test_sends_post_with_events_and_active(
+    async def test_sends_post_with_secret_and_events(
         self, webhooks: WebhooksResource, mock_router: respx.MockRouter
     ) -> None:
         route = mock_router.post(WEBHOOKS_URL).mock(
             return_value=httpx.Response(
-                201, json=_webhook_json(events=["push"], active=False)
+                201, json=_webhook_json(events=["push"])
             )
         )
         await webhooks.create(
             url="https://example.com/webhook",
+            secret="my-webhook-secret",
             events=["push"],
-            active=False,
         )
         body = json.loads(route.calls[0].request.content)
         assert body["url"] == "https://example.com/webhook"
+        assert body["secret"] == "my-webhook-secret"
         assert body["events"] == ["push"]
-        assert body["active"] is False
+        assert "active" not in body
 
     async def test_returns_webhook(
         self, webhooks: WebhooksResource, mock_router: respx.MockRouter

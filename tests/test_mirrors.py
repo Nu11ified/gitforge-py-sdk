@@ -336,13 +336,14 @@ class TestSync:
     ) -> None:
         url = f"{MIRRORS_URL}/{MIRROR_ID}/sync"
         route = mock_router.post(url).mock(
-            return_value=httpx.Response(204)
+            return_value=httpx.Response(200, json={"status": "started"})
         )
         result = await mirrors.sync(MIRROR_ID)
         assert route.called
         request = route.calls[0].request
         assert request.method == "POST"
-        assert result is None
+        assert isinstance(result, dict)
+        assert result["status"] == "started"
 
     async def test_sends_post_to_correct_mirror_id(
         self, mirrors: MirrorsResource, mock_router: respx.MockRouter
@@ -350,8 +351,9 @@ class TestSync:
         other_id = "mirror-sync-specific"
         url = f"{MIRRORS_URL}/{other_id}/sync"
         route = mock_router.post(url).mock(
-            return_value=httpx.Response(204)
+            return_value=httpx.Response(200, json={"status": "queued"})
         )
-        await mirrors.sync(other_id)
+        result = await mirrors.sync(other_id)
         request = route.calls[0].request
         assert str(request.url) == url
+        assert isinstance(result, dict)

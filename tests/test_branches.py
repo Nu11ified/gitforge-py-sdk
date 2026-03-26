@@ -150,7 +150,7 @@ class TestCreate:
         assert result.name == "feature/new"
         assert result.sha == "def456abc789"
 
-    async def test_creates_ephemeral_branch_with_ttl_hours(
+    async def test_creates_ephemeral_branch_with_ttl_seconds(
         self, branches: BranchesResource, mock_router: respx.MockRouter
     ) -> None:
         branch_data = _branch_json(
@@ -164,17 +164,48 @@ class TestCreate:
         result = await branches.create(
             "preview/deploy-42",
             sha="aaa111bbb222",
-            ephemeral=True,
-            ttl_hours=24,
+            target_is_ephemeral=True,
+            ttl_seconds=86400,
         )
         body = json.loads(route.calls[0].request.content)
         assert body == {
             "name": "preview/deploy-42",
             "sha": "aaa111bbb222",
-            "ephemeral": True,
-            "ttlHours": 24,
+            "targetIsEphemeral": True,
+            "ttlSeconds": 86400,
         }
         assert result.expires_at == "2026-03-27T01:00:00.000Z"
+
+    async def test_creates_branch_from_base_branch(
+        self, branches: BranchesResource, mock_router: respx.MockRouter
+    ) -> None:
+        branch_data = _branch_json(name="feature/new", sha="def456abc789")
+        route = mock_router.post(BRANCHES_URL).mock(
+            return_value=httpx.Response(200, json=branch_data)
+        )
+        result = await branches.create("feature/new", base_branch="main")
+        body = json.loads(route.calls[0].request.content)
+        assert body == {"name": "feature/new", "baseBranch": "main"}
+        assert isinstance(result, Branch)
+
+    async def test_creates_branch_with_base_is_ephemeral(
+        self, branches: BranchesResource, mock_router: respx.MockRouter
+    ) -> None:
+        branch_data = _branch_json(name="promoted", sha="abc123")
+        route = mock_router.post(BRANCHES_URL).mock(
+            return_value=httpx.Response(200, json=branch_data)
+        )
+        result = await branches.create(
+            "promoted",
+            base_branch="ephemeral/preview-1",
+            base_is_ephemeral=True,
+        )
+        body = json.loads(route.calls[0].request.content)
+        assert body == {
+            "name": "promoted",
+            "baseBranch": "ephemeral/preview-1",
+            "baseIsEphemeral": True,
+        }
 
     async def test_returns_branch_dataclass(
         self, branches: BranchesResource, mock_router: respx.MockRouter

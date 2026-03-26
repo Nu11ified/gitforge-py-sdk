@@ -73,7 +73,7 @@ class TestListFiles:
         url_str = str(request.url)
         assert f"/repos/{REPO_ID}/tree/HEAD" in url_str
         assert "path=" not in url_str
-        assert "namespace=" not in url_str
+        assert "ephemeral=" not in url_str
 
     async def test_lists_files_at_specific_path(
         self, files: FilesResource, mock_router: respx.MockRouter
@@ -88,16 +88,16 @@ class TestListFiles:
         assert len(result) == 1
         assert result[0].name == "index.ts"
 
-    async def test_lists_files_with_namespace_ephemeral(
+    async def test_lists_files_with_ephemeral_flag(
         self, files: FilesResource, mock_router: respx.MockRouter
     ) -> None:
         entries = [TREE_ENTRY_JSON]
         route = mock_router.get(f"{TREE_URL}/HEAD").mock(
             return_value=httpx.Response(200, json=entries)
         )
-        result = await files.list_files(namespace="ephemeral")
+        result = await files.list_files(ephemeral=True)
         url_str = str(route.calls[0].request.url)
-        assert "namespace=ephemeral" in url_str
+        assert "ephemeral=true" in url_str
 
     async def test_returns_list_of_tree_entry_dataclasses(
         self, files: FilesResource, mock_router: respx.MockRouter
@@ -157,15 +157,15 @@ class TestGetFile:
         assert "path=src%2Fmain.py" in url_str or "path=src/main.py" in url_str
         assert result.content == "v2 content"
 
-    async def test_gets_file_with_namespace_ephemeral(
+    async def test_gets_file_with_ephemeral_flag(
         self, files: FilesResource, mock_router: respx.MockRouter
     ) -> None:
         route = mock_router.get(f"{BLOB_URL}/HEAD").mock(
             return_value=httpx.Response(200, json=BLOB_JSON)
         )
-        result = await files.get_file("README.md", namespace="ephemeral")
+        result = await files.get_file("README.md", ephemeral=True)
         url_str = str(route.calls[0].request.url)
-        assert "namespace=ephemeral" in url_str
+        assert "ephemeral=true" in url_str
         assert "path=README.md" in url_str
 
     async def test_returns_blob_content_with_content_and_size(

@@ -8,7 +8,7 @@ import respx
 
 from gitforge.http import HttpClient
 from gitforge.resources.commits import CommitBuilder, CommitsResource
-from gitforge.types import Commit, CommitDetail, CommitResult, DiffEntry, PaginatedResponse
+from gitforge.types import Commit, CommitDetail, CommitResult, DiffEntry
 
 
 # ---------------------------------------------------------------------------
@@ -59,16 +59,8 @@ def _commit_json(**overrides: object) -> dict:
     return d
 
 
-def _paginated(commits: list[dict], **overrides: object) -> dict:
-    d: dict = {
-        "data": commits,
-        "total": len(commits),
-        "limit": 50,
-        "offset": 0,
-        "hasMore": False,
-    }
-    d.update(overrides)
-    return d
+def _commit_list(*commits: dict) -> list[dict]:
+    return list(commits)
 
 
 # ---------------------------------------------------------------------------
@@ -233,63 +225,60 @@ class TestList:
     async def test_lists_commits_with_default_ref(
         self, commits: CommitsResource, mock_router: respx.MockRouter
     ) -> None:
-        paginated = _paginated([COMMIT_JSON])
         route = mock_router.get(COMMITS_URL).mock(
-            return_value=httpx.Response(200, json=paginated)
+            return_value=httpx.Response(200, json=[COMMIT_JSON])
         )
         result = await commits.list()
         assert route.called
         url_str = str(route.calls[0].request.url)
         assert "ref=HEAD" in url_str
         assert "limit=" not in url_str
-        assert "offset=" not in url_str
 
-    async def test_passes_limit_and_offset(
+    async def test_passes_limit(
         self, commits: CommitsResource, mock_router: respx.MockRouter
     ) -> None:
-        paginated = _paginated(
-            [COMMIT_JSON], total=100, limit=10, offset=20, hasMore=True
-        )
         route = mock_router.get(COMMITS_URL).mock(
-            return_value=httpx.Response(200, json=paginated)
+            return_value=httpx.Response(200, json=[COMMIT_JSON])
         )
-        result = await commits.list(limit=10, offset=20)
+        result = await commits.list(limit=10)
         url_str = str(route.calls[0].request.url)
         assert "limit=10" in url_str
-        assert "offset=20" in url_str
-        assert result.limit == 10
-        assert result.offset == 20
-        assert result.has_more is True
 
     async def test_passes_custom_ref(
         self, commits: CommitsResource, mock_router: respx.MockRouter
     ) -> None:
-        paginated = _paginated([COMMIT_JSON])
         route = mock_router.get(COMMITS_URL).mock(
-            return_value=httpx.Response(200, json=paginated)
+            return_value=httpx.Response(200, json=[COMMIT_JSON])
         )
         result = await commits.list(ref="develop")
         url_str = str(route.calls[0].request.url)
         assert "ref=develop" in url_str
 
-    async def test_returns_paginated_response_with_commit_objects(
+    async def test_passes_ephemeral_flag(
+        self, commits: CommitsResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(COMMITS_URL).mock(
+            return_value=httpx.Response(200, json=[COMMIT_JSON])
+        )
+        result = await commits.list(ephemeral=True)
+        url_str = str(route.calls[0].request.url)
+        assert "ephemeral=true" in url_str
+
+    async def test_returns_list_of_commit_objects(
         self, commits: CommitsResource, mock_router: respx.MockRouter
     ) -> None:
         c1 = _commit_json(sha="aaa111", message="first")
         c2 = _commit_json(sha="bbb222", message="second")
-        paginated = _paginated([c1, c2], total=2)
         mock_router.get(COMMITS_URL).mock(
-            return_value=httpx.Response(200, json=paginated)
+            return_value=httpx.Response(200, json=[c1, c2])
         )
         result = await commits.list()
-        assert isinstance(result, PaginatedResponse)
-        assert len(result.data) == 2
-        assert all(isinstance(c, Commit) for c in result.data)
-        assert result.data[0].sha == "aaa111"
-        assert result.data[0].message == "first"
-        assert result.data[1].sha == "bbb222"
-        assert result.total == 2
-        assert result.has_more is False
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert all(isinstance(c, Commit) for c in result)
+        assert result[0].sha == "aaa111"
+        assert result[0].message == "first"
+        assert result[1].sha == "bbb222"
 
 
 # ---------------------------------------------------------------------------

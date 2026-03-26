@@ -8,7 +8,7 @@ import respx
 
 from gitforge.http import HttpClient
 from gitforge.resources.credentials import CredentialsResource
-from gitforge.types import GitCredential, PaginatedResponse
+from gitforge.types import GitCredential
 
 
 # ---------------------------------------------------------------------------
@@ -16,8 +16,9 @@ from gitforge.types import GitCredential, PaginatedResponse
 # ---------------------------------------------------------------------------
 
 BASE_URL = "https://api.gitforge.dev"
+REPO_ID = "d361989f-a82e-4d64-aa30-25e6521e4f31"
 CRED_ID = "cred-0001-aaaa-bbbb-cccc"
-CREDENTIALS_URL = f"{BASE_URL}/git-credentials"
+CREDENTIALS_URL = f"{BASE_URL}/repos/{REPO_ID}/credentials"
 
 CREDENTIAL_JSON = {
     "id": CRED_ID,
@@ -34,16 +35,6 @@ def _cred_json(**overrides: object) -> dict:
     return d
 
 
-def _paginated(*items: dict) -> dict:
-    return {
-        "data": list(items),
-        "total": len(items),
-        "limit": 20,
-        "offset": 0,
-        "hasMore": False,
-    }
-
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -51,7 +42,7 @@ def _paginated(*items: dict) -> dict:
 
 @pytest.fixture
 def credentials(http_client: HttpClient) -> CredentialsResource:
-    return CredentialsResource(http_client)
+    return CredentialsResource(http_client, REPO_ID)
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +80,7 @@ class TestCreate:
             token="glpat_xyz789",
             username="myuser",
             label="CI mirror token",
+            source_url="https://gitlab.com/example/repo.git",
         )
         body = json.loads(route.calls[0].request.content)
         assert body == {
@@ -96,6 +88,7 @@ class TestCreate:
             "token": "glpat_xyz789",
             "username": "myuser",
             "label": "CI mirror token",
+            "sourceUrl": "https://gitlab.com/example/repo.git",
         }
 
     async def test_returns_git_credential(
@@ -130,6 +123,7 @@ class TestCreate:
         body = json.loads(route.calls[0].request.content)
         assert "username" not in body
         assert "label" not in body
+        assert "sourceUrl" not in body
 
 
 # ---------------------------------------------------------------------------
@@ -138,56 +132,40 @@ class TestCreate:
 
 
 class TestList:
-    async def test_sends_get_with_default_params(
+    async def test_sends_get_request(
         self, credentials: CredentialsResource, mock_router: respx.MockRouter
     ) -> None:
         route = mock_router.get(CREDENTIALS_URL).mock(
-            return_value=httpx.Response(200, json=_paginated())
+            return_value=httpx.Response(200, json=[])
         )
         await credentials.list()
         assert route.called
         request = route.calls[0].request
         assert request.method == "GET"
 
-    async def test_sends_get_with_limit_and_offset(
-        self, credentials: CredentialsResource, mock_router: respx.MockRouter
-    ) -> None:
-        route = mock_router.get(CREDENTIALS_URL).mock(
-            return_value=httpx.Response(200, json=_paginated())
-        )
-        await credentials.list(limit=10, offset=5)
-        url = str(route.calls[0].request.url)
-        assert "limit=10" in url
-        assert "offset=5" in url
-
-    async def test_returns_paginated_response(
+    async def test_returns_list_of_git_credentials(
         self, credentials: CredentialsResource, mock_router: respx.MockRouter
     ) -> None:
         cred1 = _cred_json(id="cred-1", provider="github")
         cred2 = _cred_json(id="cred-2", provider="gitlab", label="backup")
         mock_router.get(CREDENTIALS_URL).mock(
-            return_value=httpx.Response(200, json=_paginated(cred1, cred2))
+            return_value=httpx.Response(200, json=[cred1, cred2])
         )
         result = await credentials.list()
-        assert isinstance(result, PaginatedResponse)
-        assert result.total == 2
-        assert result.limit == 20
-        assert result.offset == 0
-        assert result.has_more is False
-        assert len(result.data) == 2
-        assert all(isinstance(c, GitCredential) for c in result.data)
-        assert result.data[0].id == "cred-1"
-        assert result.data[1].label == "backup"
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert all(isinstance(c, GitCredential) for c in result)
+        assert result[0].id == "cred-1"
+        assert result[1].label == "backup"
 
-    async def test_returns_empty_paginated_response(
+    async def test_returns_empty_list(
         self, credentials: CredentialsResource, mock_router: respx.MockRouter
     ) -> None:
         mock_router.get(CREDENTIALS_URL).mock(
-            return_value=httpx.Response(200, json=_paginated())
+            return_value=httpx.Response(200, json=[])
         )
         result = await credentials.list()
-        assert result.total == 0
-        assert result.data == []
+        assert result == []
 
 
 # ---------------------------------------------------------------------------

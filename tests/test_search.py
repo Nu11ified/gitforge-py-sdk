@@ -21,7 +21,7 @@ from gitforge.types import (
 
 REPO_ID = "d361989f-a82e-4d64-aa30-25e6521e4f31"
 BASE_URL = "https://api.gitforge.dev"
-SEARCH_CODE_URL = f"{BASE_URL}/repos/{REPO_ID}/search/code"
+SEARCH_URL = f"{BASE_URL}/repos/{REPO_ID}/search"
 
 
 def _search_match(**overrides: object) -> dict:
@@ -98,7 +98,7 @@ class TestSearchCode:
     async def test_sends_query_as_q_param(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        route = mock_router.get(SEARCH_CODE_URL).mock(
+        route = mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result())
         )
         await search.search_code("hello")
@@ -111,7 +111,7 @@ class TestSearchCode:
     async def test_sends_language_as_lang_param(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        route = mock_router.get(SEARCH_CODE_URL).mock(
+        route = mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result())
         )
         await search.search_code("hello", language="typescript")
@@ -122,17 +122,38 @@ class TestSearchCode:
     async def test_omits_lang_param_when_language_not_provided(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        route = mock_router.get(SEARCH_CODE_URL).mock(
+        route = mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result())
         )
         await search.search_code("test")
         url_str = str(route.calls[0].request.url)
         assert "lang=" not in url_str
 
+    async def test_sends_branch_param(
+        self, search: SearchResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=_search_code_result())
+        )
+        await search.search_code("hello", branch="develop")
+        url_str = str(route.calls[0].request.url)
+        assert "branch=develop" in url_str
+
+    async def test_sends_per_page_and_page_params(
+        self, search: SearchResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(SEARCH_URL).mock(
+            return_value=httpx.Response(200, json=_search_code_result())
+        )
+        await search.search_code("hello", per_page=10, page=3)
+        url_str = str(route.calls[0].request.url)
+        assert "perPage=10" in url_str
+        assert "page=3" in url_str
+
     async def test_returns_search_code_result_shape(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        mock_router.get(SEARCH_CODE_URL).mock(
+        mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result(total=42, page=2, perPage=10))
         )
         result = await search.search_code("hello")
@@ -144,7 +165,7 @@ class TestSearchCode:
     async def test_result_contains_search_result_objects(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        mock_router.get(SEARCH_CODE_URL).mock(
+        mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result())
         )
         result = await search.search_code("hello")
@@ -167,7 +188,7 @@ class TestSearchCode:
                 {"line": 12, "content": 'return "hello world"', "highlight": "hello"},
             ],
         )
-        mock_router.get(SEARCH_CODE_URL).mock(
+        mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result(results=[sr]))
         )
         result = await search.search_code("hello")
@@ -183,7 +204,7 @@ class TestSearchCode:
     async def test_handles_empty_results(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        mock_router.get(SEARCH_CODE_URL).mock(
+        mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result(results=[], total=0))
         )
         result = await search.search_code("nonexistent")
@@ -195,7 +216,7 @@ class TestSearchCode:
     ) -> None:
         sr = _search_result()
         del sr["language"]
-        mock_router.get(SEARCH_CODE_URL).mock(
+        mock_router.get(SEARCH_URL).mock(
             return_value=httpx.Response(200, json=_search_code_result(results=[sr]))
         )
         result = await search.search_code("hello")
@@ -211,18 +232,21 @@ class TestCompare:
     async def test_sends_get_to_compare_url(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        compare_url = f"{BASE_URL}/repos/{REPO_ID}/compare/main...feature"
+        compare_url = f"{BASE_URL}/repos/{REPO_ID}/compare"
         route = mock_router.get(compare_url).mock(
             return_value=httpx.Response(200, json=_comparison())
         )
         result = await search.compare("main", "feature")
         assert route.called
         assert route.calls[0].request.method == "GET"
+        url_str = str(route.calls[0].request.url)
+        assert "base=main" in url_str
+        assert "head=feature" in url_str
 
     async def test_returns_comparison_dataclass(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        compare_url = f"{BASE_URL}/repos/{REPO_ID}/compare/main...feature"
+        compare_url = f"{BASE_URL}/repos/{REPO_ID}/compare"
         mock_router.get(compare_url).mock(
             return_value=httpx.Response(200, json=_comparison())
         )
@@ -236,7 +260,7 @@ class TestCompare:
     async def test_returns_correct_comparison_shape(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        compare_url = f"{BASE_URL}/repos/{REPO_ID}/compare/main...develop"
+        compare_url = f"{BASE_URL}/repos/{REPO_ID}/compare"
         data = _comparison(
             ahead=5,
             behind=0,
@@ -272,18 +296,21 @@ class TestCompareDiff:
     async def test_sends_get_to_compare_diff_url(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/main...feature/diff"
+        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/diff"
         route = mock_router.get(diff_url).mock(
             return_value=httpx.Response(200, json=[_diff_entry()])
         )
         result = await search.compare_diff("main", "feature")
         assert route.called
         assert route.calls[0].request.method == "GET"
+        url_str = str(route.calls[0].request.url)
+        assert "base=main" in url_str
+        assert "head=feature" in url_str
 
     async def test_returns_list_of_diff_entries(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/main...feature/diff"
+        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/diff"
         mock_router.get(diff_url).mock(
             return_value=httpx.Response(200, json=[_diff_entry()])
         )
@@ -299,7 +326,7 @@ class TestCompareDiff:
     async def test_returns_multiple_diff_entries(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/v1.0...v2.0/diff"
+        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/diff"
         diffs = [
             _diff_entry(path="a.ts", status="added", additions=10, deletions=0),
             _diff_entry(path="b.ts", status="deleted", additions=0, deletions=15),
@@ -317,7 +344,7 @@ class TestCompareDiff:
     async def test_returns_empty_list_for_no_diff(
         self, search: SearchResource, mock_router: respx.MockRouter
     ) -> None:
-        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/main...main/diff"
+        diff_url = f"{BASE_URL}/repos/{REPO_ID}/compare/diff"
         mock_router.get(diff_url).mock(
             return_value=httpx.Response(200, json=[])
         )
