@@ -391,3 +391,419 @@ class TestDelete:
         assert str(route.calls[0].request.url) == (
             f"https://api.gitforge.dev/repos/{REPO_ID}"
         )
+
+
+# ---------------------------------------------------------------------------
+# create_note
+# ---------------------------------------------------------------------------
+
+SHA = "a" * 40
+REF_SHA = "b" * 40
+AUTHOR = {"name": "Jane", "email": "jane@example.com"}
+
+NOTE_RESPONSE = {"sha": SHA, "refSha": REF_SHA, "success": True}
+
+
+class TestCreateNote:
+    async def test_sends_post_to_notes_endpoint(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        result = await repos.create_note(REPO_ID, SHA, "LGTM", AUTHOR)
+        assert route.called
+        assert route.calls[0].request.method == "POST"
+        assert result["success"] is True
+
+    async def test_sends_action_add_in_body(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        await repos.create_note(REPO_ID, SHA, "LGTM", AUTHOR)
+        body = json.loads(route.calls[0].request.content)
+        assert body["action"] == "add"
+        assert body["sha"] == SHA
+        assert body["note"] == "LGTM"
+        assert body["author"] == AUTHOR
+
+    async def test_includes_expected_ref_sha_when_provided(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        await repos.create_note(REPO_ID, SHA, "LGTM", AUTHOR, expected_ref_sha=REF_SHA)
+        body = json.loads(route.calls[0].request.content)
+        assert body["expectedRefSha"] == REF_SHA
+
+    async def test_omits_expected_ref_sha_when_not_provided(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        await repos.create_note(REPO_ID, SHA, "LGTM", AUTHOR)
+        body = json.loads(route.calls[0].request.content)
+        assert "expectedRefSha" not in body
+
+
+# ---------------------------------------------------------------------------
+# append_note
+# ---------------------------------------------------------------------------
+
+
+class TestAppendNote:
+    async def test_sends_post_with_action_append(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        await repos.append_note(REPO_ID, SHA, "More detail", AUTHOR)
+        assert route.called
+        body = json.loads(route.calls[0].request.content)
+        assert body["action"] == "append"
+        assert body["note"] == "More detail"
+
+    async def test_returns_response_dict(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        result = await repos.append_note(REPO_ID, SHA, "Extra", AUTHOR)
+        assert result["sha"] == SHA
+
+
+# ---------------------------------------------------------------------------
+# get_note
+# ---------------------------------------------------------------------------
+
+
+class TestGetNote:
+    async def test_sends_get_to_note_url(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        note_data = {"sha": SHA, "note": "LGTM", "refSha": REF_SHA}
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes/{SHA}"
+        ).mock(return_value=httpx.Response(200, json=note_data))
+        result = await repos.get_note(REPO_ID, SHA)
+        assert route.called
+        assert route.calls[0].request.method == "GET"
+        assert result["note"] == "LGTM"
+        assert result["sha"] == SHA
+
+    async def test_returns_note_data(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        note_data = {"sha": SHA, "note": "Review done", "refSha": REF_SHA}
+        mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes/{SHA}"
+        ).mock(return_value=httpx.Response(200, json=note_data))
+        result = await repos.get_note(REPO_ID, SHA)
+        assert result["note"] == "Review done"
+
+
+# ---------------------------------------------------------------------------
+# delete_note
+# ---------------------------------------------------------------------------
+
+
+class TestDeleteNote:
+    async def test_sends_delete_with_author_body(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.delete(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes/{SHA}"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        await repos.delete_note(REPO_ID, SHA, author=AUTHOR)
+        assert route.called
+        assert route.calls[0].request.method == "DELETE"
+        body = json.loads(route.calls[0].request.content)
+        assert body["author"] == AUTHOR
+
+    async def test_includes_expected_ref_sha_when_provided(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.delete(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes/{SHA}"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        await repos.delete_note(REPO_ID, SHA, author=AUTHOR, expected_ref_sha=REF_SHA)
+        body = json.loads(route.calls[0].request.content)
+        assert body["expectedRefSha"] == REF_SHA
+
+    async def test_sends_delete_with_no_body_when_no_params(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.delete(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/notes/{SHA}"
+        ).mock(return_value=httpx.Response(200, json=NOTE_RESPONSE))
+        await repos.delete_note(REPO_ID, SHA)
+        assert route.called
+        assert route.calls[0].request.method == "DELETE"
+
+
+# ---------------------------------------------------------------------------
+# restore_commit
+# ---------------------------------------------------------------------------
+
+COMMIT_SHA = "c" * 40
+
+
+class TestRestoreCommit:
+    async def test_sends_post_to_restore_commit_endpoint(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        response_data = {"commitSha": COMMIT_SHA, "treeSha": "d" * 40, "success": True}
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/restore-commit"
+        ).mock(return_value=httpx.Response(200, json=response_data))
+        result = await repos.restore_commit(REPO_ID, "main", COMMIT_SHA, AUTHOR)
+        assert route.called
+        assert route.calls[0].request.method == "POST"
+        assert result["success"] is True
+
+    async def test_sends_required_fields_in_body(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        response_data = {"commitSha": COMMIT_SHA, "treeSha": "d" * 40, "success": True}
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/restore-commit"
+        ).mock(return_value=httpx.Response(200, json=response_data))
+        await repos.restore_commit(REPO_ID, "main", COMMIT_SHA, AUTHOR)
+        body = json.loads(route.calls[0].request.content)
+        assert body["targetBranch"] == "main"
+        assert body["targetCommitSha"] == COMMIT_SHA
+        assert body["author"] == AUTHOR
+
+    async def test_includes_optional_fields_when_provided(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        response_data = {"commitSha": COMMIT_SHA, "treeSha": "d" * 40, "success": True}
+        committer = {"name": "Bot", "email": "bot@example.com"}
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/restore-commit"
+        ).mock(return_value=httpx.Response(200, json=response_data))
+        await repos.restore_commit(
+            REPO_ID,
+            "main",
+            COMMIT_SHA,
+            AUTHOR,
+            committer=committer,
+            commit_message="Restore to stable",
+            expected_head_sha=SHA,
+        )
+        body = json.loads(route.calls[0].request.content)
+        assert body["committer"] == committer
+        assert body["commitMessage"] == "Restore to stable"
+        assert body["expectedHeadSha"] == SHA
+
+    async def test_omits_optional_fields_when_not_provided(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        response_data = {"commitSha": COMMIT_SHA, "treeSha": "d" * 40, "success": True}
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/restore-commit"
+        ).mock(return_value=httpx.Response(200, json=response_data))
+        await repos.restore_commit(REPO_ID, "main", COMMIT_SHA, AUTHOR)
+        body = json.loads(route.calls[0].request.content)
+        assert "committer" not in body
+        assert "commitMessage" not in body
+        assert "expectedHeadSha" not in body
+
+
+# ---------------------------------------------------------------------------
+# list_files_with_metadata
+# ---------------------------------------------------------------------------
+
+FILES_METADATA_RESPONSE = {
+    "files": [
+        {"path": "README.md", "sha": SHA, "size": 100, "type": "blob"}
+    ],
+    "commits": {SHA: {"sha": SHA, "message": "Initial commit"}},
+    "ref": "main",
+}
+
+
+class TestListFilesWithMetadata:
+    async def test_sends_get_to_metadata_endpoint(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/files/metadata"
+        ).mock(return_value=httpx.Response(200, json=FILES_METADATA_RESPONSE))
+        result = await repos.list_files_with_metadata(REPO_ID, ref="main")
+        assert route.called
+        assert route.calls[0].request.method == "GET"
+        assert result["ref"] == "main"
+
+    async def test_passes_ref_as_query_param(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/files/metadata"
+        ).mock(return_value=httpx.Response(200, json=FILES_METADATA_RESPONSE))
+        await repos.list_files_with_metadata(REPO_ID, ref="develop")
+        url_str = str(route.calls[0].request.url)
+        assert "ref=develop" in url_str
+
+    async def test_passes_ephemeral_as_query_param(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/files/metadata"
+        ).mock(return_value=httpx.Response(200, json=FILES_METADATA_RESPONSE))
+        await repos.list_files_with_metadata(REPO_ID, ephemeral=True)
+        url_str = str(route.calls[0].request.url)
+        assert "ephemeral=true" in url_str
+
+    async def test_omits_optional_params_when_not_provided(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/files/metadata"
+        ).mock(return_value=httpx.Response(200, json=FILES_METADATA_RESPONSE))
+        await repos.list_files_with_metadata(REPO_ID)
+        url_str = str(route.calls[0].request.url)
+        assert "ref=" not in url_str
+        assert "ephemeral=" not in url_str
+
+
+# ---------------------------------------------------------------------------
+# pull_upstream
+# ---------------------------------------------------------------------------
+
+PULL_UPSTREAM_RESPONSE = {
+    "status": "fast_forward",
+    "success": True,
+    "oldSha": SHA,
+    "newSha": REF_SHA,
+    "branch": "main",
+}
+
+
+class TestPullUpstream:
+    async def test_sends_post_to_pull_upstream_endpoint(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/pull-upstream"
+        ).mock(return_value=httpx.Response(200, json=PULL_UPSTREAM_RESPONSE))
+        result = await repos.pull_upstream(REPO_ID, branch="main")
+        assert route.called
+        assert route.calls[0].request.method == "POST"
+        assert result["status"] == "fast_forward"
+
+    async def test_includes_branch_in_body_when_provided(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/pull-upstream"
+        ).mock(return_value=httpx.Response(200, json=PULL_UPSTREAM_RESPONSE))
+        await repos.pull_upstream(REPO_ID, branch="feature")
+        body = json.loads(route.calls[0].request.content)
+        assert body["branch"] == "feature"
+
+    async def test_sends_empty_body_when_no_branch(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.post(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/pull-upstream"
+        ).mock(return_value=httpx.Response(200, json=PULL_UPSTREAM_RESPONSE))
+        await repos.pull_upstream(REPO_ID)
+        body = json.loads(route.calls[0].request.content) if route.calls[0].request.content else {}
+        assert "branch" not in body
+
+
+# ---------------------------------------------------------------------------
+# detach_upstream
+# ---------------------------------------------------------------------------
+
+
+class TestDetachUpstream:
+    async def test_sends_delete_to_base_endpoint(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.delete(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/base"
+        ).mock(return_value=httpx.Response(200, json={"message": "repository detached"}))
+        result = await repos.detach_upstream(REPO_ID)
+        assert route.called
+        assert route.calls[0].request.method == "DELETE"
+        assert result["message"] == "repository detached"
+
+    async def test_sends_delete_to_correct_url(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.delete(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/base"
+        ).mock(return_value=httpx.Response(200, json={"message": "ok"}))
+        await repos.detach_upstream(REPO_ID)
+        assert str(route.calls[0].request.url) == (
+            f"https://api.gitforge.dev/repos/{REPO_ID}/base"
+        )
+
+
+# ---------------------------------------------------------------------------
+# get_raw_file
+# ---------------------------------------------------------------------------
+
+RAW_CONTENT = b"# Hello World\n"
+
+
+class TestGetRawFile:
+    async def test_sends_get_to_raw_endpoint(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/raw/main"
+        ).mock(return_value=httpx.Response(200, content=RAW_CONTENT))
+        result = await repos.get_raw_file(REPO_ID, "main", "README.md")
+        assert route.called
+        assert route.calls[0].request.method == "GET"
+        assert isinstance(result, bytes)
+        assert result == RAW_CONTENT
+
+    async def test_passes_path_as_query_param(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/raw/main"
+        ).mock(return_value=httpx.Response(200, content=RAW_CONTENT))
+        await repos.get_raw_file(REPO_ID, "main", "src/main.py")
+        url_str = str(route.calls[0].request.url)
+        assert "path=src%2Fmain.py" in url_str or "path=src/main.py" in url_str
+
+    async def test_passes_download_param_when_true(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/raw/main"
+        ).mock(return_value=httpx.Response(200, content=RAW_CONTENT))
+        await repos.get_raw_file(REPO_ID, "main", "README.md", download=True)
+        url_str = str(route.calls[0].request.url)
+        assert "download=true" in url_str
+
+    async def test_omits_download_param_by_default(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        route = mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/raw/main"
+        ).mock(return_value=httpx.Response(200, content=RAW_CONTENT))
+        await repos.get_raw_file(REPO_ID, "main", "README.md")
+        url_str = str(route.calls[0].request.url)
+        assert "download=" not in url_str
+
+    async def test_returns_raw_bytes(
+        self, repos: ReposResource, mock_router: respx.MockRouter
+    ) -> None:
+        binary_content = bytes(range(256))
+        mock_router.get(
+            f"https://api.gitforge.dev/repos/{REPO_ID}/raw/main"
+        ).mock(return_value=httpx.Response(200, content=binary_content))
+        result = await repos.get_raw_file(REPO_ID, "main", "binary.bin")
+        assert result == binary_content

@@ -69,3 +69,24 @@ class HttpClient:
         url = f"{self.base_url}{path}"
         response = await self.client.delete(url, headers=self._headers(), params=query or {})
         return await self._handle_response(response)
+
+    async def get_raw(self, path: str, query: Optional[dict[str, str]] = None) -> bytes:
+        url = f"{self.base_url}{path}"
+        response = await self.client.get(url, headers=self._headers(), params=query or {})
+        if not response.is_success:
+            try:
+                body = response.json()
+            except Exception:
+                body = None
+            code = (body or {}).get("code") or (body or {}).get("error") or "unknown"
+            message = (body or {}).get("message") or f"HTTP {response.status_code}"
+            raise GitForgeError(response.status_code, code, message)
+        return response.content
+
+    async def delete_with_body(self, path: str, body: Any = None) -> Any:
+        url = f"{self.base_url}{path}"
+        kwargs: dict[str, Any] = {"headers": self._headers({"Content-Type": "application/json"})}
+        if body is not None:
+            kwargs["json"] = body
+        response = await self.client.request("DELETE", url, **kwargs)
+        return await self._handle_response(response)
