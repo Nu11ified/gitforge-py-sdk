@@ -15,6 +15,7 @@ from .resources.tokens import TokensResource
 from .resources.credentials import CredentialsResource
 from .resources.mirrors import MirrorsResource
 from .resources.webhooks import WebhooksResource
+from .resources.sandbox import SandboxResource
 
 
 class RepoScope:
@@ -29,6 +30,7 @@ class RepoScope:
         self.tokens = TokensResource(http, repo_id)
         self.mirrors = MirrorsResource(http, repo_id)
         self.webhooks = WebhooksResource(http, repo_id)
+        self.sandbox = SandboxResource(http, repo_id)
 
 
 class GitForge:

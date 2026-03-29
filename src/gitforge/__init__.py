@@ -7,7 +7,7 @@ from .types import (
     Repo, Branch, Tag, Commit, CommitDetail, DiffEntry,
     TreeEntry, BlobContent, SearchMatch, SearchResult,
     SearchCodeResult, Comparison, CommitResult, RepoToken,
-    GitCredential, MirrorConfig, Webhook, WebhookDelivery,
+    SandboxUrl, GitCredential, MirrorConfig, Webhook, WebhookDelivery,
     WebhookTestResult, PaginatedResponse, CommitFileEntry,
     PromoteResult,
 )
@@ -27,7 +27,7 @@ __all__ = [
     "Repo", "Branch", "Tag", "Commit", "CommitDetail", "DiffEntry",
     "TreeEntry", "BlobContent", "SearchMatch", "SearchResult",
     "SearchCodeResult", "Comparison", "CommitResult", "RepoToken",
-    "GitCredential", "MirrorConfig", "Webhook", "WebhookDelivery",
+    "SandboxUrl", "GitCredential", "MirrorConfig", "Webhook", "WebhookDelivery",
     "WebhookTestResult", "PaginatedResponse", "CommitFileEntry",
     "PromoteResult",
 ]

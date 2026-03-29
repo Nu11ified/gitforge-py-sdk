@@ -132,6 +132,15 @@ class RepoToken:
 
 
 @dataclass
+class SandboxUrl:
+    remote_url: str
+    token: str
+    expires_at: str
+    branch: str
+    ephemeral_branch: Optional[str] = None
+
+
+@dataclass
 class GitCredential:
     id: str
     provider: str
