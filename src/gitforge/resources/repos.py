@@ -182,3 +182,17 @@ class ReposResource:
         if download:
             query["download"] = "true"
         return await self._http.get_raw(f"/repos/{repo_id}/raw/{ref}", query)
+
+    # --- Archive ---
+
+    async def get_archive(
+        self,
+        repo_id: str,
+        ref: str,
+        format: str = "tarball",
+        paths: Optional[list[str]] = None,
+    ) -> bytes:
+        query: dict[str, str] = {}
+        if paths:
+            query["paths"] = ",".join(paths)
+        return await self._http.get_raw(f"/repos/{repo_id}/archive/{format}/{ref}", query)

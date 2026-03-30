@@ -109,3 +109,26 @@ class CommitsResource:
             self._http, self._repo_id, branch, message,
             author_name, author_email, base_branch,
         )
+
+    async def create_from_diff(
+        self,
+        target_branch: str,
+        diff: str,
+        commit_message: str,
+        author_name: str,
+        author_email: str,
+        base_branch: Optional[str] = None,
+        expected_head_sha: Optional[str] = None,
+    ) -> CommitResult:
+        body: dict[str, Any] = {
+            "targetBranch": target_branch,
+            "commitMessage": commit_message,
+            "author": {"name": author_name, "email": author_email},
+            "diff": diff,
+        }
+        if base_branch is not None:
+            body["baseBranch"] = base_branch
+        if expected_head_sha is not None:
+            body["expectedHeadSha"] = expected_head_sha
+        data = await self._http.post(f"/repos/{self._repo_id}/diff-commit", body)
+        return _from_dict(CommitResult, data)
