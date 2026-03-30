@@ -212,3 +212,40 @@ class CommitFileEntry:
 class PromoteResult:
     target_branch: str
     commit_sha: str
+
+
+@dataclass
+class PatchSet:
+    id: str
+    repo_id: str
+    name: str
+    base_ref: str = "main"
+    base_sha: str = ""
+    status: str = "clean"
+    auto_rebase: bool = False
+    visibility: str = "private"
+    description: Optional[str] = None
+    materialized_branch: Optional[str] = None
+    materialized_sha: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+@dataclass
+class PatchSetPatch:
+    id: str
+    name: str
+    order: int = 0
+    diff: str = ""
+    status: str = "enabled"
+    description: Optional[str] = None
+    conflict_details: Optional[str] = None
+    author_name: Optional[str] = None
+    author_email: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+@dataclass
+class PatchSetWithPatches(PatchSet):
+    patches: list[PatchSetPatch] = field(default_factory=list)

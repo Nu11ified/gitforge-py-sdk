@@ -16,6 +16,7 @@ from .resources.credentials import CredentialsResource
 from .resources.mirrors import MirrorsResource
 from .resources.webhooks import WebhooksResource
 from .resources.sandbox import SandboxResource
+from .resources.patch_sets import PatchSetsResource
 
 
 class RepoScope:
@@ -43,6 +44,7 @@ class GitForge:
         self._http = HttpClient(base_url=base_url, token=token, client=client)
         self.repos = ReposResource(self._http)
         self.credentials = CredentialsResource(self._http)
+        self.patch_sets = PatchSetsResource(self._http)
 
     def repo(self, repo_id: str) -> RepoScope:
         return RepoScope(self._http, repo_id)

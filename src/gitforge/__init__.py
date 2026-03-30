@@ -9,7 +9,7 @@ from .types import (
     SearchCodeResult, Comparison, CommitResult, RepoToken,
     SandboxUrl, GitCredential, MirrorConfig, Webhook, WebhookDelivery,
     WebhookTestResult, PaginatedResponse, CommitFileEntry,
-    PromoteResult,
+    PromoteResult, PatchSet, PatchSetPatch, PatchSetWithPatches,
 )
 from .resources.commits import CommitBuilder
 from .webhooks.validate import validate_webhook, validate_webhook_signature
@@ -29,5 +29,5 @@ __all__ = [
     "SearchCodeResult", "Comparison", "CommitResult", "RepoToken",
     "SandboxUrl", "GitCredential", "MirrorConfig", "Webhook", "WebhookDelivery",
     "WebhookTestResult", "PaginatedResponse", "CommitFileEntry",
-    "PromoteResult",
+    "PromoteResult", "PatchSet", "PatchSetPatch", "PatchSetWithPatches",
 ]
