@@ -5,7 +5,7 @@ Python SDK for [GitForge](https://git-forge.dev) — Git infrastructure for deve
 ## Install
 
 ```bash
-pip install gitforge
+pip install gitforge-py-sdk
 ```
 
 Requires Python 3.10+.
@@ -88,15 +88,15 @@ except GitForgeError as e:
 
 ## Contributing
 
-This SDK is developed inside the [GitForge monorepo](https://github.com/Nu11ified/GitForge) at `sdks/python/` and published to this repo via git subtree.
+Contributions are welcome! Please open a pull request against this repository.
 
-To contribute:
+1. Fork this repo
+2. Install dev dependencies: `pip install -e .[dev]`
+3. Make your changes
+4. Run tests: `pytest`
+5. Submit a PR
 
-1. Clone the monorepo: `git clone https://github.com/Nu11ified/GitForge.git`
-2. Install dependencies: `pip install -e sdks/python[dev]`
-3. Make changes in `sdks/python/`
-4. Run tests: `pytest sdks/python/`
-5. Submit a PR to the monorepo
+Accepted changes are pulled into the main GitForge monorepo by the maintainers.
 
 ## License
 
