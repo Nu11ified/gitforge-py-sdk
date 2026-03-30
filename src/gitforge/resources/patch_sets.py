@@ -109,3 +109,62 @@ class PatchSetsResource:
 
     async def materialize(self, set_id: str) -> dict:
         return await self._http.post(f"/patch-sets/{set_id}/materialize")
+
+    # ---- Sharing methods ----
+
+    async def publish(self, set_id: str) -> dict:
+        return await self._http.post(f"/patch-sets/{set_id}/publish")
+
+    async def unpublish(self, set_id: str) -> None:
+        await self._http.delete(f"/patch-sets/{set_id}/publish")
+
+    async def fork(
+        self,
+        set_id: str,
+        name: Optional[str] = None,
+    ) -> dict:
+        body: dict[str, Any] = {}
+        if name is not None:
+            body["name"] = name
+        return await self._http.post(f"/patch-sets/{set_id}/fork", body)
+
+    async def subscribe(self, set_id: str) -> None:
+        await self._http.post(f"/patch-sets/{set_id}/subscribe")
+
+    async def unsubscribe(self, set_id: str) -> None:
+        await self._http.delete(f"/patch-sets/{set_id}/subscribe")
+
+    async def get_updates(self, set_id: str) -> dict:
+        return await self._http.get(f"/patch-sets/{set_id}/updates")
+
+    async def accept_updates(
+        self,
+        set_id: str,
+        patches: Optional[list[str]] = None,
+        accept_all: bool = False,
+    ) -> dict:
+        body: dict[str, Any]
+        if accept_all:
+            body = {"patches": ["all"]}
+        elif patches:
+            body = {"patches": patches}
+        else:
+            body = {"patches": ["all"]}
+        return await self._http.post(f"/patch-sets/{set_id}/updates/accept", body)
+
+    async def explore(
+        self,
+        q: Optional[str] = None,
+        base: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> dict:
+        query: dict[str, str] = {
+            "page": str(page),
+            "pageSize": str(page_size),
+        }
+        if q is not None:
+            query["q"] = q
+        if base is not None:
+            query["base"] = base
+        return await self._http.get("/explore/patch-sets", query)
