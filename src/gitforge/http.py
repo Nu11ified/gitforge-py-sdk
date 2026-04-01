@@ -90,3 +90,46 @@ class HttpClient:
             kwargs["json"] = body
         response = await self.client.request("DELETE", url, **kwargs)
         return await self._handle_response(response)
+
+    async def sse(
+        self,
+        path: str,
+        query: Optional[dict[str, str]] = None,
+    ) -> Any:
+        """Consume an SSE endpoint, yielding {event, data} dicts."""
+        url = f"{self.base_url}{path}"
+        headers = self._headers({"Accept": "text/event-stream"})
+
+        async with self.client.stream(
+            "GET", url, headers=headers, params=query or {}
+        ) as response:
+            if not response.is_success:
+                body = None
+                try:
+                    await response.aread()
+                    body = response.json()
+                except Exception:
+                    pass
+                code = (body or {}).get("code") or "unknown"
+                message = (body or {}).get("message") or f"HTTP {response.status_code}"
+                raise GitForgeError(response.status_code, code, message)
+
+            current_event = "message"
+            current_data = ""
+
+            async for line in response.aiter_lines():
+                if line == "":
+                    if current_data:
+                        yield {"event": current_event, "data": current_data}
+                    current_event = "message"
+                    current_data = ""
+                elif line.startswith(":"):
+                    continue
+                elif line.startswith("event:"):
+                    current_event = line[6:].strip()
+                elif line.startswith("data:"):
+                    value = line[5:].strip()
+                    current_data = value if current_data == "" else current_data + "\n" + value
+
+            if current_data:
+                yield {"event": current_event, "data": current_data}

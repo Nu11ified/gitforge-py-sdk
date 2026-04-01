@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar, Optional
+from typing import Any, Generic, TypeVar, Optional
 
 T = TypeVar("T")
 
@@ -249,3 +249,85 @@ class PatchSetPatch:
 @dataclass
 class PatchSetWithPatches(PatchSet):
     patches: list[PatchSetPatch] = field(default_factory=list)
+
+
+@dataclass
+class HotFile:
+    path: str
+    content: Optional[str] = None
+    size: Optional[int] = None
+    mode: Optional[str] = None
+    sha: Optional[str] = None
+    encoding: Optional[str] = None
+    last_commit: Optional[dict[str, str]] = None
+
+
+@dataclass
+class HotTreeEntry:
+    name: str
+    path: str
+    type: str
+    mode: str
+    sha: str
+    size: Optional[int] = None
+
+
+@dataclass
+class HotTreeResult:
+    entries: list[HotTreeEntry] = field(default_factory=list)
+    truncated: bool = False
+
+
+@dataclass
+class HotCommitResult:
+    commit_sha: str
+    tree_sha: str
+    ref: str
+    parent_shas: list[str] = field(default_factory=list)
+
+
+@dataclass
+class HotRefEntry:
+    name: str
+    sha: str
+    type: str
+
+
+@dataclass
+class BatchSummary:
+    total: int
+    succeeded: int
+    failed: int
+
+
+@dataclass
+class BatchItem:
+    index: int
+    status: str
+    value: Optional[Any] = None
+    error: Optional[dict[str, str]] = None
+
+
+@dataclass
+class BatchResponse:
+    results: list[BatchItem] = field(default_factory=list)
+    summary: Optional[BatchSummary] = None
+
+
+@dataclass
+class Job:
+    id: str
+    type: str
+    status: str
+    created_at: str
+    progress: Optional[dict[str, int]] = None
+    result: Any = None
+    error: Optional[dict[str, str]] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+@dataclass
+class StreamEvent:
+    event: str
+    data: dict[str, Any] = field(default_factory=dict)

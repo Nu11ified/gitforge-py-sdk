@@ -19,6 +19,12 @@ from .resources.sandbox import SandboxResource
 from .resources.patch_sets import PatchSetsResource
 from .resources.changes import ChangesResource
 from .resources.operations import OperationsResource
+from .resources.hot import HotResource
+from .resources.batch import BatchResource
+from .resources.recipes import RecipesResource
+from .resources.jobs import JobsResource
+from .resources.streams import StreamsResource
+from .resources.state import StateResource
 
 
 class RepoScope:
@@ -49,6 +55,12 @@ class GitForge:
         self.patch_sets = PatchSetsResource(self._http)
         self.changes = ChangesResource(self._http)
         self.operations = OperationsResource(self._http)
+        self.hot = HotResource(self._http)
+        self.batch = BatchResource(self._http)
+        self.recipes = RecipesResource(self._http)
+        self.jobs = JobsResource(self._http)
+        self.streams = StreamsResource(self._http)
+        self.state = StateResource(self._http)
 
     def repo(self, repo_id: str) -> RepoScope:
         return RepoScope(self._http, repo_id)
