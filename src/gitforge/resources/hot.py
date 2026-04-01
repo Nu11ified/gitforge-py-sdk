@@ -31,7 +31,9 @@ class HotResource:
         depth: int = 1,
     ) -> dict:
         query: dict[str, str] = {"ref": ref, "depth": str(depth)}
-        encoded_path = "/".join(quote(seg, safe="") for seg in path.split("/"))
+        # "." means root tree — use "root" to avoid URL normalization stripping the dot
+        safe_path = "root" if path in (".", "") else path
+        encoded_path = "/".join(quote(seg, safe="") for seg in safe_path.split("/"))
         return await self._http.get(f"/repos/{repo_id}/hot/tree/{encoded_path}", query)
 
     async def commit(
