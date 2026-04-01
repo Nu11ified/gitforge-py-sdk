@@ -10,6 +10,8 @@ from .types import (
     SandboxUrl, GitCredential, MirrorConfig, Webhook, WebhookDelivery,
     WebhookTestResult, PaginatedResponse, CommitFileEntry,
     PromoteResult, PatchSet, PatchSetPatch, PatchSetWithPatches,
+    HotFile, HotTreeEntry, HotTreeResult, HotCommitResult, HotRefEntry,
+    BatchSummary, BatchItem, BatchResponse, Job, StreamEvent,
 )
 from .resources.commits import CommitBuilder
 from .webhooks.validate import validate_webhook, validate_webhook_signature
@@ -30,4 +32,7 @@ __all__ = [
     "SandboxUrl", "GitCredential", "MirrorConfig", "Webhook", "WebhookDelivery",
     "WebhookTestResult", "PaginatedResponse", "CommitFileEntry",
     "PromoteResult", "PatchSet", "PatchSetPatch", "PatchSetWithPatches",
+    # Core primitives types
+    "HotFile", "HotTreeEntry", "HotTreeResult", "HotCommitResult", "HotRefEntry",
+    "BatchSummary", "BatchItem", "BatchResponse", "Job", "StreamEvent",
 ]

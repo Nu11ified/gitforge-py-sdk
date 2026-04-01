@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Optional
+from urllib.parse import quote
 
 from ..http import HttpClient
 
@@ -19,7 +20,8 @@ class HotResource:
         query: dict[str, str] = {"ref": ref}
         if include:
             query["include"] = ",".join(include)
-        return await self._http.get(f"/repos/{repo_id}/hot/files/{path}", query)
+        encoded_path = "/".join(quote(seg, safe="") for seg in path.split("/"))
+        return await self._http.get(f"/repos/{repo_id}/hot/files/{encoded_path}", query)
 
     async def list_tree(
         self,
@@ -29,7 +31,8 @@ class HotResource:
         depth: int = 1,
     ) -> dict:
         query: dict[str, str] = {"ref": ref, "depth": str(depth)}
-        return await self._http.get(f"/repos/{repo_id}/hot/tree/{path}", query)
+        encoded_path = "/".join(quote(seg, safe="") for seg in path.split("/"))
+        return await self._http.get(f"/repos/{repo_id}/hot/tree/{encoded_path}", query)
 
     async def commit(
         self,

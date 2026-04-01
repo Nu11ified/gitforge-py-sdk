@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Any, Optional
 
 import httpx
@@ -95,7 +96,7 @@ class HttpClient:
         self,
         path: str,
         query: Optional[dict[str, str]] = None,
-    ) -> Any:
+    ) -> AsyncIterator[dict[str, str]]:
         """Consume an SSE endpoint, yielding {event, data} dicts."""
         url = f"{self.base_url}{path}"
         headers = self._headers({"Accept": "text/event-stream"})

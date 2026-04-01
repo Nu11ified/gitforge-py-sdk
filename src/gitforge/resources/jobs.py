@@ -32,7 +32,7 @@ class JobsResource:
         return await self._http.get(f"/jobs/{job_id}")
 
     async def cancel(self, job_id: str) -> dict:
-        return await self._http.delete(f"/jobs/{job_id}")
+        return await self._http.delete_with_body(f"/jobs/{job_id}")
 
     async def wait_for(
         self,
