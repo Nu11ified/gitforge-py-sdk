@@ -25,6 +25,8 @@ from .resources.recipes import RecipesResource
 from .resources.jobs import JobsResource
 from .resources.streams import StreamsResource
 from .resources.state import StateResource
+from .resources.traverse import TraverseResource
+from .resources.edit import EditResource
 
 
 class RepoScope:
@@ -61,6 +63,8 @@ class GitForge:
         self.jobs = JobsResource(self._http)
         self.streams = StreamsResource(self._http)
         self.state = StateResource(self._http)
+        self.traverse = TraverseResource(self._http)
+        self.edit = EditResource(self._http)
 
     def repo(self, repo_id: str) -> RepoScope:
         return RepoScope(self._http, repo_id)
