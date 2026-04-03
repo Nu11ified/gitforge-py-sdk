@@ -331,3 +331,38 @@ class Job:
 class StreamEvent:
     event: str
     data: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ShellExecResult:
+    session_id: str
+    stdout: str
+    stderr: str
+    exit_code: int
+    ref: Optional[str] = None
+    head_sha: Optional[str] = None
+    pending_changes: int = 0
+
+
+@dataclass
+class ShellMount:
+    path: str
+    repo_id: str
+    ref: str
+    head_sha: str
+    pending_changes: int = 0
+
+
+@dataclass
+class ShellMultiExecResult:
+    session_id: str
+    stdout: str
+    stderr: str
+    exit_code: int
+    mounts: list[ShellMount] = field(default_factory=list)
+
+
+@dataclass
+class ShellDestroyResult:
+    destroyed: bool
+    uncommitted_files: int = 0

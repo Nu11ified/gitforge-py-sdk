@@ -12,6 +12,7 @@ from .types import (
     PromoteResult, PatchSet, PatchSetPatch, PatchSetWithPatches,
     HotFile, HotTreeEntry, HotTreeResult, HotCommitResult, HotRefEntry,
     BatchSummary, BatchItem, BatchResponse, Job, StreamEvent,
+    ShellExecResult, ShellMount, ShellMultiExecResult, ShellDestroyResult,
 )
 from .resources.commits import CommitBuilder
 from .webhooks.validate import validate_webhook, validate_webhook_signature
@@ -35,4 +36,6 @@ __all__ = [
     # Core primitives types
     "HotFile", "HotTreeEntry", "HotTreeResult", "HotCommitResult", "HotRefEntry",
     "BatchSummary", "BatchItem", "BatchResponse", "Job", "StreamEvent",
+    # Shell types
+    "ShellExecResult", "ShellMount", "ShellMultiExecResult", "ShellDestroyResult",
 ]

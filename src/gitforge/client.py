@@ -27,6 +27,7 @@ from .resources.streams import StreamsResource
 from .resources.state import StateResource
 from .resources.traverse import TraverseResource
 from .resources.edit import EditResource
+from .resources.shell import ShellResource, RepoShellResource
 
 
 class RepoScope:
@@ -42,6 +43,7 @@ class RepoScope:
         self.mirrors = MirrorsResource(http, repo_id)
         self.webhooks = WebhooksResource(http, repo_id)
         self.sandbox = SandboxResource(http, repo_id)
+        self.shell = RepoShellResource(http, repo_id)
 
 
 class GitForge:
@@ -65,6 +67,7 @@ class GitForge:
         self.state = StateResource(self._http)
         self.traverse = TraverseResource(self._http)
         self.edit = EditResource(self._http)
+        self.shell = ShellResource(self._http)
 
     def repo(self, repo_id: str) -> RepoScope:
         return RepoScope(self._http, repo_id)
